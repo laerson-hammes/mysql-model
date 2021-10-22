@@ -1,33 +1,32 @@
-from connection import Connection
-from typing import Any, Dict, Union
-import pymysql.cursors
+from .connection import Connection, ConnectionAttributes
+from typing import Dict, List
 
 
-class Database(Connection):
+class Database(Connection, ConnectionAttributes):
 
     DEFAULT_CHARSET: str = 'utf8'
     DEFAULT_COLLATE: str = 'utf8_general_ci'
-    DATABASE_NAME: Union[str, None] = None
-   
-    def __init__(self, **kwargs: Dict[str, Any]) -> None:
-        super().__init__(**kwargs)
 
-    def create(self, database: str) -> None:
-        self.DATABASE_NAME = database
-        query: str = f"""CREATE DATABASE IF NOT EXISTS {database}
+    def __init__(self, database: str, /) -> None:
+        super().__init__()
+        self.database = database
+
+
+    def create(self, /) -> int:
+        query: str = f"""CREATE DATABASE IF NOT EXISTS {self.database}
                         DEFAULT CHARACTER SET {self.DEFAULT_CHARSET}
                         DEFAULT COLLATE {self.DEFAULT_COLLATE};"""
-        self.execute(query)
+        return self.execute(query)
 
-    def drop(self) -> None:
-        if self.DATABASE_NAME:
-            self.execute(f"DROP DATABASE {self.DATABASE_NAME};")
-      
-    def use(self) -> None:
-        if self.DATABASE_NAME:
-            self.execute(f"USE {self.DATABASE_NAME};")
-      
 
-if __name__ == "__main__":
-    db: Database = Database(host='localhost', user='root', password='', autocommit=True, cursorclass=pymysql.cursors.DictCursor)
-    print(db.execute("SHOW DATABASES;")[0]['Database'])
+    def drop(self, /) -> int:
+        return self.execute(f"DROP DATABASE {self.database};")
+
+
+    def use(self, /) -> None:
+        self.update_atribute(database = self.database)
+
+
+    def show_tables(self, /) -> List[Dict[str, str]]:
+        self.use()
+        return self.execute("SHOW TABLES;")
